@@ -4,102 +4,86 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define MAX_SIZE 100
-
+#define MAX_STACK_SIZE 100
 
 typedef struct {
-    int data[MAX_SIZE];
     int top;
+    int items[MAX_STACK_SIZE];
 } Stack;
 
-
-void init_stack(Stack *stack) {
-    stack->top = -1;
-}
-
-
-int is_empty(Stack *stack) {
-    return stack->top == -1;
-}
-
-int is_full(Stack *stack) {
-    return stack->top == MAX_SIZE - 1;
-}
-
-
-void push(Stack *stack, int item) {
-    if (is_full(stack)) {
-        printf("Stack overflow\n");
-        exit(1);
+void push(Stack *s, int value) {
+    if (s->top == MAX_STACK_SIZE - 1) {
+        printf("Stack Overflow\n");
+        exit(EXIT_FAILURE);
+    } else {
+        s->items[++(s->top)] = value;
     }
-    stack->data[++stack->top] = item;
 }
 
-
-int pop(Stack *stack) {
-    if (is_empty(stack)) {
-        printf("Stack underflow\n");
-        exit(1);
+int pop(Stack *s) {
+    if (s->top == -1) {
+        printf("Stack Underflow\n");
+        exit(EXIT_FAILURE);
+    } else {
+        return s->items[(s->top)--];
     }
-    return stack->data[stack->top--];
 }
 
+int isOperator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/' || c == '%');
+}
 
-int precedence(char op) {
+int applyOperator(int a, int b, char op) {
     switch (op) {
         case '+':
+            return a + b;
         case '-':
-            return 1;
+            return a - b;
         case '*':
+            return a * b;
         case '/':
+            if (b == 0) {
+                printf("Division by zero\n");
+                exit(EXIT_FAILURE);
+            } else {
+                return a / b;
+            }
         case '%':
-            return 2;
+            if (b == 0) {
+                printf("Modulo by zero\n");
+                exit(EXIT_FAILURE);
+            } else {
+                return a % b;
+            }
         default:
-            return -1;
+            printf("Invalid Operator\n");
+            exit(EXIT_FAILURE);
     }
 }
 
-
-void infix_to_postfix(const char *infix, char *postfix) {
+int evaluateRPN(char *expression) {
     Stack stack;
-    init_stack(&stack);
-    int i = 0, j = 0;
-    char token;
-
-    while ((token = infix[i++]) != '\0') {
-        if (isalnum(token)) {
-            postfix[j++] = token;
-        } else if (token == '(') {
-            push(&stack, token);
-        } else if (token == ')') {
-            while (!is_empty(&stack) && stack.data[stack.top] != '(') {
-                postfix[j++] = pop(&stack);
-            }
-            if (!is_empty(&stack) && stack.data[stack.top] != '(') {
-                printf("Invalid infix expression\n");
-                exit(1);
-            }
-            pop(&stack); 
-        } else {
-            while (!is_empty(&stack) && precedence(token) <= precedence(stack.data[stack.top])) {
-                postfix[j++] = pop(&stack);
-            }
-            push(&stack, token);
+    stack.top = -1;
+    int i = 0;
+    while (expression[i] != '\0') {
+        if (isdigit(expression[i])) {
+            push(&stack, expression[i] - '0');
+        } else if (isOperator(expression[i])) {
+            int b = pop(&stack);
+            int a = pop(&stack);
+            int result = applyOperator(a, b, expression[i]);
+            push(&stack, result);
         }
+        i++;
     }
-
-    while (!is_empty(&stack)) {
-        postfix[j++] = pop(&stack);
-    }
-
-    postfix[j] = '\0';
+    return pop(&stack);
 }
 
 int main() {
-    char infix[MAX_SIZE], postfix[MAX_SIZE];
-    printf("Enter an infix expression: ");
-    fgets(infix, sizeof(infix), stdin);
-    infix_to_postfix(infix, postfix);
-    printf("Postfix expression: %s\n", postfix);
+    char expression[100];
+    printf("Enter the Infix Expression: ");
+    scanf("%s", expression);
+    int result = evaluateRPN(expression);
+    printf("Result: %d\n", result);
     return 0;
 }
